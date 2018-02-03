@@ -1,0 +1,95 @@
+#include "Adafruit_NeoMatrix.h"
+#include "Adafruit_NeoPixel.h"
+#include "Adafruit_GFX.h"
+
+#ifndef PSTR
+  #define PSTR
+#endif
+
+#define PIN 6
+
+
+// Parameter 5 = pixel type flags, add together as needed:
+//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
+//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
+//   NEO_GRBW    Pixels are wired for GRBW bitstream (RGB+W NeoPixel products)
+//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
+
+
+// Example for NeoPixel Shield.  In this application we'd like to use it
+// as a 5x8 tall matrix, with the USB port positioned at the top of the
+// Arduino.  When held that way, the first pixel is at the top right, and
+// lines are arranged in columns, progressive order.  The shield uses
+// 800 KHz (v2) pixels that expect GRB color data.
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(12, 12 , PIN , NEO_MATRIX_BOTTOM + NEO_MATRIX_RIGHT + NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG , NEO_GRB + NEO_KHZ800);
+
+const uint16_t colors[] = {
+  matrix.Color(255, 0, 0), matrix.Color(0, 255, 0), matrix.Color(0, 0, 255) };
+
+void setup() {
+  matrix.begin();
+  matrix.setTextWrap(false);
+  matrix.setBrightness(40);
+  matrix.setTextColor(colors[0]);
+}
+
+int right= 12;
+int left= 0;
+int top= 0;
+int bottom= 12;
+
+void spiral();
+void unspiral();
+
+void loop() {
+    
+   spiral();
+   //unspiral();
+
+  }
+
+void spiral() {
+
+  for (int i= left ; i < right ; i++) {
+         matrix.fillScreen(0);
+         matrix.drawPixel(i, top, colors[2]);
+         matrix.show();
+         delay(50);
+    }
+
+    top++;
+
+
+    for (int i= top ; i< bottom ; i++) {
+        matrix.fillScreen(0);
+        matrix.drawPixel(right - 1, i, colors[2]);
+        matrix.show();
+        delay(50);
+    }
+
+    right--;
+
+    for (int i= right ; i> left ; i--) {
+      matrix.fillScreen(0);
+      matrix.drawPixel(i, bottom - 1, colors[2]);
+      matrix.show();
+      delay(50);
+    }
+
+    bottom--;
+
+    for (int i= bottom ; i > top ; i--) {
+      matrix.fillScreen(0);
+      matrix.drawPixel(left, i , colors[2]);
+      matrix.show();
+      delay(50);
+    }
+
+    left++;
+
+    if (top == 6 && right== 7 && bottom == 7 && left == 6) {
+      return;
+    }
+
+}
