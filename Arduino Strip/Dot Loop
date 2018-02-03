@@ -1,0 +1,49 @@
+#include <FastLED.h>
+
+#define COLOR_ORDER GRB
+#define MAX_BRIGHTNESS 255 //Actual max is 255
+
+
+#define NUM_LEDS 150
+
+// This is an array of leds. One item for each led in your strip
+CRGB leds[NUM_LEDS];
+
+
+#define DATA_PIN 6 
+
+
+void setup()
+{
+
+ FastLED.addLeds<WS2812B, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+
+ FastLED.clear();
+ FastLED.setBrightness(40);
+ fill_solid( leds, NUM_LEDS , CRGB( 0,128,128 ));
+ FastLED.show();
+ 
+ // start serial port at 9600 bps:
+ Serial.begin(9600);
+}
+
+void loop()
+{
+  for(int dot=0; dot<NUM_LEDS-15; dot++) {
+  leds[dot] = CRGB::Green;
+  leds[dot+13] = CRGB::HotPink;
+  leds[dot+5] = CRGB::Red;
+  leds[dot+10] = CRGB::Yellow;
+  leds[dot+15] = CRGB::Blue;
+  
+  FastLED.show();
+  delay(30);      
+  
+  leds[dot] = CRGB::Black;
+  leds[dot+13] = CRGB::Black;
+  leds[dot+5] = CRGB::Black;
+  leds[dot+10] = CRGB::Black;
+  leds[dot+15] = CRGB::Black;
+  FastLED.show();
+ } 
+}
