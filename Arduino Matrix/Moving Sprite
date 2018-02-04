@@ -1,0 +1,183 @@
+
+// this program was made by Kartik Soni on 2018-Feb-03
+#include <Adafruit_GFX.h>
+#include <Adafruit_NeoMatrix.h>
+#include <Adafruit_NeoPixel.h>
+#ifndef PSTR
+ #define PSTR // Make Arduino Due happy
+#endif
+
+#define PIN 7
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(12, 12 , PIN , NEO_MATRIX_BOTTOM + NEO_MATRIX_RIGHT + NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG , NEO_GRB + NEO_KHZ800);
+
+int inputPinVertical = 3;       // the dedicated input pin for the switch
+int currentConnectionVertical;
+int outputPinVertical = 2;      // the dedicated output pin (supplies power to switch)
+
+int inputPinHorizontal = 8;       // the dedicated input pin for the switch
+int currentConnectionHorizontal;
+int outputPinHorizontal = 5;      // the dedicated output pin (supplies power to switch)
+
+int x = 0;
+int z = 0;
+
+int boundaryHorizontal=0; 
+int boundaryVertical=0;         // value that bounds the image vertically
+
+// None of the following defined colors are used, just for reference in creating the color array
+#define BLACK    0x0000
+#define BLUE     0x001F
+#define RED      0xF800
+#define GREEN    0x07E0
+#define CYAN     0x07FF
+#define MAGENTA  0xF81F
+#define YELLOW   0xFFE0 
+#define WHITE    0xFFFF
+
+uint16_t array2[] = {
+                0x000F, 0x0000, 0x0000, 0x0000, 0x000F, 
+                0x0000, 0x000F, 0x0000, 0x000F, 0x0000, 
+                0x000F, 0x000F, 0x0000, 0x000F, 0x000F, 
+                0x0000, 0x000F, 0x000F, 0x000F, 0x0000, 
+                0x000F, 0x0000, 0x0000, 0x0000, 0x000F
+                };
+                /*0x000F, 0x0000, 0x0000, 0x0000, 0x000F, 
+                0x0000, 0x000F, 0x0000, 0x000F, 0x0000, 
+                0x000F, 0x000F, 0x0000, 0x000F, 0x000F, 
+                0x0000, 0x000F, 0x000F, 0x000F, 0x0000, 
+                0x000F, 0x0000, 0x0000, 0x0000, 0x000F*/
+void setup() {
+  matrix.fillScreen(0);
+  matrix.show();
+  pinMode(inputPinVertical, INPUT);
+  pinMode(outputPinVertical, OUTPUT);
+  pinMode(inputPinHorizontal, INPUT);
+  pinMode(outputPinHorizontal, OUTPUT);
+  digitalWrite(outputPinVertical, HIGH);
+  digitalWrite(outputPinHorizontal, HIGH);
+  pinMode(LED_BUILTIN, OUTPUT);   // setup for blinking on-board LED
+  matrix.begin();
+  
+  drawImage(2,2);
+  delay(2000);
+  clearImage(2,2);
+  int boundary = 0;
+}
+
+void drawImage(int startX, int startY) {
+  z=0;
+  for (int y=0; y<5; y++){
+    for (int i=0; i<5;i++){
+      matrix.drawPixel(i+startX, y+startY, array2[z]);
+      
+      z=z+1;
+    }
+    
+  }
+  matrix.show();
+}
+void clearImage(int startX, int startY) {
+  for (int y=0; y<5; y++){
+    for (int i=0; i<5;i++){
+      matrix.drawPixel(i+startX, y+startY, 0x0000);
+      
+    }
+    
+  }
+}
+
+void loop() {
+  currentConnectionVertical = digitalRead(inputPinVertical);
+  currentConnectionHorizontal = digitalRead(inputPinHorizontal);
+
+
+  
+  if (currentConnectionVertical == HIGH && currentConnectionHorizontal == HIGH){
+     drawImage(boundaryHorizontal, boundaryVertical);
+     matrix.show();
+     
+     delay(100);
+     
+     clearImage(boundaryHorizontal, boundaryVertical);
+     matrix.show();
+     
+     boundaryVertical = boundaryVertical +1;
+     boundaryHorizontal = boundaryHorizontal +1;
+     
+     if (boundaryVertical<0) {
+      boundaryVertical = 0;
+     } else if (boundaryVertical>7) {
+      boundaryVertical = 7;
+     } 
+     if (boundaryHorizontal<0) {
+      boundaryHorizontal = 0;
+     } else if (boundaryHorizontal>7) {
+      boundaryHorizontal = 7;
+     }
+  } else if(currentConnectionVertical == HIGH && currentConnectionHorizontal == LOW) {
+     drawImage(boundaryHorizontal, boundaryVertical);
+     matrix.show();
+     
+     delay(100);
+    
+     clearImage(boundaryHorizontal, boundaryVertical);
+     matrix.show();
+     boundaryVertical = boundaryVertical +1;
+     
+     
+     if (boundaryVertical<0) {
+      boundaryVertical = 0;
+     } else if (boundaryVertical>7) {
+      boundaryVertical = 7;
+     } 
+     if (boundaryHorizontal<0) {
+      boundaryHorizontal = 0;
+     } else if (boundaryHorizontal>7) {
+      boundaryHorizontal = 7;
+     }
+}
+    else if(currentConnectionVertical == LOW && currentConnectionHorizontal == HIGH) {
+     drawImage(boundaryHorizontal, boundaryVertical);
+     
+     matrix.show();
+     delay(100);
+     clearImage(boundaryHorizontal, boundaryVertical);
+     
+     matrix.show();
+     
+     
+     boundaryHorizontal = boundaryHorizontal +1;
+     
+     if (boundaryVertical<0) {
+      boundaryVertical = 0;
+     } else if (boundaryVertical>7) {
+      boundaryVertical = 7;
+     } 
+     if (boundaryHorizontal<0) {
+      boundaryHorizontal = 0;
+     } else if (boundaryHorizontal>7) {
+      boundaryHorizontal = 7;
+     }
+}
+    else if(currentConnectionVertical == LOW && currentConnectionHorizontal == LOW) {
+     drawImage(boundaryHorizontal, boundaryVertical);
+     //matrix.show();
+     delay(100);
+     clearImage(boundaryHorizontal, boundaryVertical);
+     //matrix.show();
+     
+     boundaryVertical = boundaryVertical -1;
+     boundaryHorizontal = boundaryHorizontal -1;
+     
+     if (boundaryVertical<0) {
+      boundaryVertical = 0;
+     } else if (boundaryVertical>7) {
+      boundaryVertical = 7;
+     } 
+     if (boundaryHorizontal<0) {
+      boundaryHorizontal = 0;
+     } else if (boundaryHorizontal>7) {
+      boundaryHorizontal = 7;
+     }
+    }
+  }
