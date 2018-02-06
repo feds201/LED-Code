@@ -1,5 +1,5 @@
-
 // this program was made by Kartik Soni on 2018-Feb-03
+// Updated to 4 directional controls  2018-Feb-05
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
@@ -10,19 +10,26 @@
 #define PIN 7
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(12, 12 , PIN , NEO_MATRIX_BOTTOM + NEO_MATRIX_RIGHT + NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG , NEO_GRB + NEO_KHZ800);
 
-int inputPinVertical = 3;       // the dedicated input pin for the switch
-int currentConnectionVertical;
-int outputPinVertical = 2;      // the dedicated output pin (supplies power to switch)
+int inputPinDown = 4;       // the dedicated input pin for the button that makes the image move down
+int currentConnectionDown;
+int outputPinDown = 3;      // the dedicated output pin (supplies power to button)
 
-int inputPinHorizontal = 8;       // the dedicated input pin for the switch
-int currentConnectionHorizontal;
-int outputPinHorizontal = 5;      // the dedicated output pin (supplies power to switch)
+int inputPinRight = 6;       // the dedicated input pin for the button that makes the image move right
+int currentConnectionRight;
+int outputPinRight = 5;      // the dedicated output pin (supplies power to button)
 
-int x = 0;
-int z = 0;
+int inputPinLeft = 9;       // the dedicated input pin for the buttonthat makes the image move left
+int currentConnectionLeft;
+int outputPinLeft = 8;      // the dedicated output pin (supplies power to button)
 
-int boundaryHorizontal=0; 
-int boundaryVertical=0;         // value that bounds the image vertically
+int inputPinUp = 2;         // the dedicated input pin for the buttonthat makes the image move left
+int currentConnectionUp;
+int outputPinUp = 1;        // the dedicated output pin (supplies power to button)
+
+int boundaryRight=3;        // value that bounds the image horizantally
+int boundaryDown=0;         // value that bounds the image vertically
+
+
 
 // None of the following defined colors are used, just for reference in creating the color array
 #define BLACK    0x0000
@@ -34,6 +41,19 @@ int boundaryVertical=0;         // value that bounds the image vertically
 #define YELLOW   0xFFE0 
 #define WHITE    0xFFFF
 
+/* Drawing for what image is to be displayed. each color is stroed as a four-digit hexidecimal (0x) number. the number is converted into binary, 
+ * the first 5 bits representing red, the next 6 representing green, and the last five representing blue. 
+ * 
+ * FYI:
+ *    0x0000 = Black/Blank
+      BLUE     0x001F
+      RED      0xF800
+      GREEN    0x07E0
+      CYAN     0x07FF
+      MAGENTA  0xF81F
+      YELLOW   0xFFE0 
+      WHITE    0xFFFF
+ */
 uint16_t array2[] = {
                 0x000F, 0x0000, 0x0000, 0x0000, 0x000F, 
                 0x0000, 0x000F, 0x0000, 0x000F, 0x0000, 
@@ -41,31 +61,39 @@ uint16_t array2[] = {
                 0x0000, 0x000F, 0x000F, 0x000F, 0x0000, 
                 0x000F, 0x0000, 0x0000, 0x0000, 0x000F
                 };
-                /*0x000F, 0x0000, 0x0000, 0x0000, 0x000F, 
-                0x0000, 0x000F, 0x0000, 0x000F, 0x0000, 
-                0x000F, 0x000F, 0x0000, 0x000F, 0x000F, 
-                0x0000, 0x000F, 0x000F, 0x000F, 0x0000, 
-                0x000F, 0x0000, 0x0000, 0x0000, 0x000F*/
+
 void setup() {
   matrix.fillScreen(0);
   matrix.show();
-  pinMode(inputPinVertical, INPUT);
-  pinMode(outputPinVertical, OUTPUT);
-  pinMode(inputPinHorizontal, INPUT);
-  pinMode(outputPinHorizontal, OUTPUT);
-  digitalWrite(outputPinVertical, HIGH);
-  digitalWrite(outputPinHorizontal, HIGH);
+  pinMode(inputPinDown, INPUT);   //initializes ports needed for powering and recieving a connection from button
+  pinMode(outputPinDown, OUTPUT);
+  
+  pinMode(inputPinRight, INPUT);  //initializes ports needed for powering and recieving a connection from button
+  pinMode(outputPinRight, OUTPUT);
+  
+  pinMode(inputPinLeft, INPUT);   //initializes ports needed for powering and recieving a connection from button
+  pinMode(outputPinLeft, OUTPUT);
+
+  pinMode(inputPinUp, INPUT);     //initializes ports needed for powering and recieving a connection from button
+  pinMode(outputPinUp, OUTPUT);
+  
+  digitalWrite(outputPinDown, HIGH);  //tells each output pin to constantly output a 5V signal so the input cable will recieve it
+  digitalWrite(outputPinRight, HIGH);
+  digitalWrite(outputPinLeft, HIGH);
+  digitalWrite(outputPinUp, HIGH);
+  
   pinMode(LED_BUILTIN, OUTPUT);   // setup for blinking on-board LED
   matrix.begin();
   
-  drawImage(2,2);
-  delay(2000);
+  drawImage(2,2);     //test to make sure board is functional, then clears image and prepares for movement
+  delay(1000);
   clearImage(2,2);
   int boundary = 0;
 }
 
+/*This function draws whatever image is defined in array2 */
 void drawImage(int startX, int startY) {
-  z=0;
+  int z=0;
   for (int y=0; y<5; y++){
     for (int i=0; i<5;i++){
       matrix.drawPixel(i+startX, y+startY, array2[z]);
@@ -85,99 +113,58 @@ void clearImage(int startX, int startY) {
     
   }
 }
+void checkBoundaries () {
+  if (boundaryDown<0) {
+      boundaryDown = 0;
+     } else if (boundaryDown>7) {
+      boundaryDown = 7;
+     } 
+     if (boundaryRight<0) {
+      boundaryRight = 0;
+     } else if (boundaryRight>7) {
+      boundaryRight = 7;
+     }
+}
 
 void loop() {
-  currentConnectionVertical = digitalRead(inputPinVertical);
-  currentConnectionHorizontal = digitalRead(inputPinHorizontal);
 
-
+  currentConnectionLeft = digitalRead(inputPinLeft);
+  currentConnectionDown = digitalRead(inputPinDown);
+  currentConnectionRight = digitalRead(inputPinRight);
+  currentConnectionUp = digitalRead(inputPinUp);    
   
-  if (currentConnectionVertical == HIGH && currentConnectionHorizontal == HIGH){
-     drawImage(boundaryHorizontal, boundaryVertical);
-     matrix.show();
+  
+
+  if (currentConnectionDown == HIGH) {
+
+    boundaryDown = boundaryDown +1;
+    matrix.fillScreen(0);
+    matrix.show();
      
-     delay(100);
-     
-     clearImage(boundaryHorizontal, boundaryVertical);
-     matrix.show();
-     
-     boundaryVertical = boundaryVertical +1;
-     boundaryHorizontal = boundaryHorizontal +1;
-     
-     if (boundaryVertical<0) {
-      boundaryVertical = 0;
-     } else if (boundaryVertical>7) {
-      boundaryVertical = 7;
-     } 
-     if (boundaryHorizontal<0) {
-      boundaryHorizontal = 0;
-     } else if (boundaryHorizontal>7) {
-      boundaryHorizontal = 7;
-     }
-  } else if(currentConnectionVertical == HIGH && currentConnectionHorizontal == LOW) {
-     drawImage(boundaryHorizontal, boundaryVertical);
-     matrix.show();
-     
-     delay(100);
+  } if (currentConnectionRight == HIGH) {
     
-     clearImage(boundaryHorizontal, boundaryVertical);
-     matrix.show();
-     boundaryVertical = boundaryVertical +1;
-     
-     
-     if (boundaryVertical<0) {
-      boundaryVertical = 0;
-     } else if (boundaryVertical>7) {
-      boundaryVertical = 7;
-     } 
-     if (boundaryHorizontal<0) {
-      boundaryHorizontal = 0;
-     } else if (boundaryHorizontal>7) {
-      boundaryHorizontal = 7;
-     }
-}
-    else if(currentConnectionVertical == LOW && currentConnectionHorizontal == HIGH) {
-     drawImage(boundaryHorizontal, boundaryVertical);
-     
-     matrix.show();
-     delay(100);
-     clearImage(boundaryHorizontal, boundaryVertical);
-     
-     matrix.show();
-     
-     
-     boundaryHorizontal = boundaryHorizontal +1;
-     
-     if (boundaryVertical<0) {
-      boundaryVertical = 0;
-     } else if (boundaryVertical>7) {
-      boundaryVertical = 7;
-     } 
-     if (boundaryHorizontal<0) {
-      boundaryHorizontal = 0;
-     } else if (boundaryHorizontal>7) {
-      boundaryHorizontal = 7;
-     }
-}
-    else if(currentConnectionVertical == LOW && currentConnectionHorizontal == LOW) {
-     drawImage(boundaryHorizontal, boundaryVertical);
-     //matrix.show();
-     delay(100);
-     clearImage(boundaryHorizontal, boundaryVertical);
-     //matrix.show();
-     
-     boundaryVertical = boundaryVertical -1;
-     boundaryHorizontal = boundaryHorizontal -1;
-     
-     if (boundaryVertical<0) {
-      boundaryVertical = 0;
-     } else if (boundaryVertical>7) {
-      boundaryVertical = 7;
-     } 
-     if (boundaryHorizontal<0) {
-      boundaryHorizontal = 0;
-     } else if (boundaryHorizontal>7) {
-      boundaryHorizontal = 7;
-     }
-    }
+    boundaryRight = boundaryRight +1;
+    matrix.fillScreen(0);
+    matrix.show();
+      
+  } if (currentConnectionLeft == HIGH) {
+    
+    boundaryRight = boundaryRight -1;
+    matrix.fillScreen(0);
+    matrix.show();
+    
+  } if (currentConnectionUp == HIGH) {
+    
+    boundaryDown = boundaryDown -1;
+    matrix.fillScreen(0);
+    matrix.show();
+    
   }
+  
+  checkBoundaries();
+  drawImage(boundaryRight, boundaryDown);
+  matrix.show();
+     
+  delay(10);
+
+}
