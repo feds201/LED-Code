@@ -1,0 +1,167 @@
+// this program was made by Kartik Soni on 2018-Feb-010
+// Setup for NeoMatrix
+#include <Adafruit_GFX.h>
+#include <Adafruit_NeoMatrix.h>
+#include <Adafruit_NeoPixel.h>
+#ifndef PSTR
+ #define PSTR // Make Arduino Due happy
+#endif
+
+#define PIN 7
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(12, 12 , PIN , NEO_MATRIX_BOTTOM + NEO_MATRIX_RIGHT + NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG , NEO_GRB + NEO_KHZ800);
+
+// Setup for Adafruit Sensor
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_LSM9DS1.h>
+#include <Adafruit_Sensor.h>  // not used in this demo but required!
+
+// i2c
+Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
+
+long previousTime = 0;
+long currentTime = 0;
+
+float XAngle = 0;
+float XCoord = 6;
+
+float XVelo = 0;
+float XNoGravAccel = 0;
+
+float YAngle = 0;
+float YCoord = 6;
+float YVelo = 0;
+float YNoGravAccel = 0;
+
+boolean calibratingFinished = true;
+float calibrateCounter = 1;
+float XCalibrateTotal = 0;
+float YCalibrateTotal = 0;
+float XCalibrateFinished = 0;
+float YCalibrateFinished = 0;
+
+void setupSensor()  //sets up sensor
+{
+  // 1.) Set the accelerometer range
+  lsm.setupAccel(lsm.LSM9DS1_ACCELRANGE_2G);
+
+  
+  // 2.) Set the magnetometer sensitivity
+  lsm.setupMag(lsm.LSM9DS1_MAGGAIN_4GAUSS);
+
+
+  // 3.) Setup the gyroscope
+  lsm.setupGyro(lsm.LSM9DS1_GYROSCALE_245DPS);
+
+}
+
+void checkBoundaries () {
+  if (XCoord<0) {
+      XCoord = 0;
+  } else if (XCoord>11) {
+      XCoord = 11;
+  } 
+  if (YCoord<0) {
+      YCoord = 0;
+  } else if (YCoord>11) {
+      YCoord = 11;
+  }
+}
+
+void setup() {
+  matrix.fillScreen(0);
+  matrix.show();
+  matrix.begin(); 
+  Serial.begin(115200);
+
+  while (!Serial) {
+    delay(1); // will pause Zero, Leonardo, etc until serial console opens
+  }
+  
+  Serial.println("LSM9DS1 data read demo");
+  
+  // Try to initialise and warn if we couldn't detect the chip
+  if (!lsm.begin())
+  {
+    Serial.println("Oops ... unable to initialize the LSM9DS1. Check your wiring!");
+    while (1);
+  }
+  Serial.println("Found LSM9DS1 9DOF");
+
+  // helper to just set the default scaling we want, see above!
+  setupSensor();
+}
+
+void loop() {
+  lsm.read();  /* ask it to read in the data */ 
+
+  /* Get a new sensor event */ 
+  sensors_event_t a, m, g, temp;
+  lsm.getEvent(&a, &m, &g, &temp);
+
+  // Get current time to calculate delta T
+  currentTime = millis();
+  
+  //spends first 10 seconds calibrating by setting current acceleration as error amount. MUST NOT BE MOVING DURING THIS!!!!
+  
+    if (currentTime > 0 && currentTime < 5000 ) {
+      XCalibrateTotal = (XCalibrateTotal + (a.acceleration.x));
+      YCalibrateTotal = (YCalibrateTotal + (a.acceleration.y));
+      calibrateCounter = calibrateCounter + 1;
+      calibratingFinished = false;
+      //Serial.print(XCalibrateTotal);
+      //Serial.print("\t\t");
+    }
+    
+    
+    if (calibratingFinished) {
+      XCalibrateFinished = XCalibrateTotal/calibrateCounter;
+      //Serial.print("\t\t");
+      //Serial.print(XCalibrateFinished);
+      YCalibrateFinished = YCalibrateTotal/calibrateCounter;
+      //Serial.print("\t\t");
+      //Serial.print(YCalibrateFinished);
+    }
+  
+  
+  
+  Serial.print("\t"); Serial.print(currentTime);  Serial.print("\t");
+  Serial.print("Accel X: "); Serial.print((a.acceleration.x-XCalibrateFinished)); 
+  Serial.print("\tY "); Serial.print((a.acceleration.y-YCalibrateFinished));   
+    
+  
+  //Calculate current velocity based on acceleration and assumed delta T
+ 
+    if(calibratingFinished && ((a.acceleration.x-XCalibrateFinished) > 0.05 || (a.acceleration.x-XCalibrateFinished) < -0.05 )){
+      XVelo = (1 * (a.acceleration.x-XCalibrateFinished) * (currentTime - previousTime)/1000) + XVelo; 
+      XCoord = XCoord - (500 * (currentTime - previousTime)/1000 * XVelo);
+    }
+
+
+    if(calibratingFinished && ((a.acceleration.y-YCalibrateFinished) > 0.05 || (a.acceleration.y-YCalibrateFinished) < -0.05 )){
+      YVelo = (1 * (a.acceleration.y-YCalibrateFinished) * (currentTime - previousTime)/1000) + YVelo; 
+      YCoord = YCoord - (500 * (currentTime - previousTime)/1000 * YVelo);
+    } 
+
+  
+  //XCoord = (XVelo *5222222222222222211+* (currentTime - previousTime)/1000) + XCoord;
+  //YCoord = (YVelo *5* (currentTime - previousTime)/1000) + YCoord;
+
+  Serial.print("\t\tCurrent Velocities: X: "); Serial.print(XVelo);  Serial.print("\tY: "); Serial.print(YVelo); 
+  Serial.print("\t\t\tCurrent Distance: X: "); Serial.print(XCoord);  Serial.print("\tY: "); Serial.println(YCoord);
+
+  
+  if (currentTime > 0 && currentTime < 5000 && calibratingFinished == false) {
+    calibratingFinished = true;
+  }
+  
+  checkBoundaries();
+  matrix.fillScreen(0);
+
+  matrix.drawPixel((int)XCoord,(int)YCoord, 0x001F);
+  matrix.show();
+  previousTime = millis();
+  
+
+  
+}
